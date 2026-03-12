@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<title>Atlas RN — Clinical Intelligence</title>
+<meta name="description" content="AI-powered clinical intelligence for nurses."/>
+<meta name="theme-color" content="#1A56DB"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Atlas RN"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Lora:ital,wght@0,500;1,400&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* ── DESIGN TOKENS ── */
+:root {
+  --white: #FFFFFF;
+  --bg: #F7F9FC;
+  --surface: #FFFFFF;
+  --panel: #F0F4FA;
+  --panel2: #E8EEF8;
+
+  --blue-50: #EFF6FF;
+  --blue-100: #DBEAFE;
+  --blue-200: #BFDBFE;
+  --blue-400: #60A5FA;
+  --blue-500: #3B82F6;
+  --blue-600: #1A56DB;
+  --blue-700: #1D4ED8;
+  --blue-900: #1E3A8A;
+
+  --slate-50: #F8FAFC;
+  --slate-100: #F1F5F9;
+  --slate-200: #E2E8F0;
+  --slate-300: #CBD5E1;
+  --slate-400: #94A3B8;
+  --slate-500: #64748B;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1E293B;
+  --slate-900: #0F172A;
+
+  --green-500: #22C55E;
+  --green-600: #16A34A;
+  --red-500: #EF4444;
+  --red-100: #FEE2E2;
+  --amber-500: #F59E0B;
+  --amber-100: #FEF3C7;
+  --teal-500: #14B8A6;
+  --teal-100: #CCFBF1;
+
+  --text: var(--slate-800);
+  --text-secondary: var(--slate-500);
+  --text-muted: var(--slate-400);
+  --border: var(--slate-200);
+  --border-focus: var(--blue-500);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,0.1);
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+}
+
+/* ── RESET ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--slate-200); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--slate-300); }
+input, textarea, button, select { font-family: inherit; }
+button { cursor: pointer; }
+a { color: var(--blue-600); text-decoration: none; }
+
+/* ── AUTH / LANDING SCREEN ── */
+#authScreen {
+  position: fixed; inset: 0;
+  background: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 2rem; overflow-y: auto;
+}
+.auth-bg {
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, var(--blue-50) 0%, var(--white) 60%);
+  overflow: hidden;
+  z-index: 0;
+}
+.auth-bg::before { content: ''; position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, var(--blue-100) 0%, transparent 70%); top: -200px; right: -100px; border-radius: 50%; }
+.auth-bg::after { content: ''; position: absolute; width: 400px; height: 400px; background: radial-gradient(circle, var(--blue-50) 0%, transparent 70%); bottom: -100px; left: -100px; border-radius: 50%; }
+
+.landing-container {
+  display: flex; gap: 4rem; max-width: 1100px; width: 100%;
+  margin: auto; align-items: center; z-index: 10; position: relative;
+}
+
+/* Landing Info Left Side */
+.landing-info { flex: 1.2; animation: fadeUp 0.4s ease; }
+.landing-hero-title { font-size: 2.8rem; font-weight: 700; color: var(--slate-800); margin-bottom: 1rem; line-height: 1.15; letter-spacing: -0.02em; }
+.landing-hero-title span { color: var(--blue-600); }
+.landing-hero-sub { font-size: 1.1rem; color: var(--slate-600); margin-bottom: 2.5rem; line-height: 1.6; max-width: 480px; }
+.scenario-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+.scenario-card {
+  background: rgba(255, 255, 255, 0.7); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 1.25rem;
+  backdrop-filter: blur(10px); box-shadow: var(--shadow-sm);
+  transition: transform 0.2s;
+}
+.scenario-card:hover { transform: translateY(-3px); border-color: var(--blue-200); background: var(--white); }
+.scenario-icon {
+  width: 36px; height: 36px; background: var(--blue-50);
+  color: var(--blue-600); border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 1rem; border: 1px solid var(--blue-100);
+}
+.scenario-title { font-size: .95rem; font-weight: 700; color: var(--slate-800); margin-bottom: .3rem; }
+.scenario-desc { font-size: .85rem; color: var(--text-secondary); line-height: 1.5; font-style: italic; }
+
+/* Auth Card Right Side */
+.auth-card {
+  flex: 0.8; max-width: 420px; width: 100%; background: var(--white);
+  border: 1px solid var(--border); border-radius: var(--radius-xl);
+  padding: 2.5rem 2rem; box-shadow: var(--shadow-lg);
+  animation: fadeUp .5s ease;
+}
+.auth-brand { display: flex; align-items: center; gap: .75rem; margin-bottom: 2rem; justify-content: center; }
+.auth-brand-mark { width: 44px; height: 44px; background: var(--blue-600); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(26,86,219,.3); }
+.auth-brand-text { text-align: left; }
+.auth-brand-name { font-size: 1.25rem; font-weight: 700; color: var(--slate-800); letter-spacing: -.01em; }
+.auth-brand-name span { color: var(--blue-600); }
+.auth-brand-sub { font-size: .65rem; color: var(--text-muted); letter-spacing: .12em; text-transform: uppercase; }
+.auth-tabs { display: flex; gap: 0; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border); }
+.auth-tab { flex: 1; padding: .6rem .5rem; border: none; background: none; font-size: .85rem; font-weight: 500; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+.auth-tab.active { color: var(--blue-600); border-bottom-color: var(--blue-600); font-weight: 600; }
+.form-group { margin-bottom: .9rem; }
+.form-label { display: block; font-size: .75rem; font-weight: 600; color: var(--slate-600); margin-bottom: .35rem; letter-spacing: .02em; }
+.form-input { width: 100%; background: var(--slate-50); border: 1.5px solid var(--border); border-radius: var(--radius); padding: .65rem .9rem; color: var(--text); font-size: .88rem; transition: all .2s; outline: none; }
+.form-input:focus { background: var(--white); border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+.form-input::placeholder { color: var(--text-muted); }
+select.form-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right .75rem center; padding-right: 2rem; }
+.auth-btn { width: 100%; background: var(--blue-600); border: none; border-radius: var(--radius); padding: .75rem; color: #fff; font-weight: 600; font-size: .9rem; transition: all .2s; margin-top: .25rem; letter-spacing: .01em; }
+.auth-btn:hover { background: var(--blue-700); box-shadow: 0 4px 12px rgba(26,86,219,.3); transform: translateY(-1px); }
+.auth-btn:active { transform: translateY(0); }
+.auth-error { background: var(--red-100); border: 1px solid #FECACA; border-radius: var(--radius); padding: .6rem .8rem; color: var(--red-500); font-size: .78rem; margin-bottom: 1rem; display: none; }
+.auth-footer { text-align: center; font-size: .7rem; color: var(--text-muted); margin-top: 1.25rem; }
+
+/* ── APP SHELL ── */
+#app { display: none; width: 100%; height: 100vh; flex-direction: row; }
+#app.visible { display: flex; }
+
+/* ── SIDEBAR ── */
+#sidebar { width: 256px; min-width: 256px; height: 100vh; background: var(--white); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: transform .25s ease; z-index: 100; }
+.sidebar-header { padding: 1rem 1rem .875rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: .65rem; }
+.sidebar-mark { width: 32px; height: 32px; flex-shrink: 0; background: var(--blue-600); border-radius: 9px; display: flex; align-items: center; justify-content: center; }
+.sidebar-brand-name { font-size: .95rem; font-weight: 700; color: var(--slate-800); }
+.sidebar-brand-name span { color: var(--blue-600); }
+.sidebar-brand-sub { font-size: .58rem; color: var(--text-muted); letter-spacing: .1em; text-transform: uppercase; }
+
+/* Model Pills */
+.sidebar-section { padding: .75rem 1rem; }
+.section-label { font-size: .65rem; font-weight: 700; color: var(--text-muted); letter-spacing: .12em; text-transform: uppercase; margin-bottom: .5rem; }
+.model-list { display: flex; flex-direction: column; gap: .25rem; }
+.model-item { display: flex; align-items: center; gap: .6rem; padding: .55rem .7rem; border-radius: var(--radius); border: 1.5px solid transparent; background: none; cursor: pointer; transition: all .15s; width: 100%; text-align: left; }
+.model-item:hover { background: var(--blue-50); }
+.model-item.active { background: var(--blue-50); border-color: var(--blue-200); }
+.model-pip { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--slate-300); }
+.model-item.active .model-pip { background: var(--blue-600); }
+.model-item-text { flex: 1; min-width: 0; }
+.model-item-name { font-size: .8rem; font-weight: 600; color: var(--slate-700); }
+.model-item.active .model-item-name { color: var(--blue-700); }
+.model-item-desc { font-size: .65rem; color: var(--text-muted); }
+.model-tag { font-size: .58rem; font-weight: 700; padding: 2px 6px; border-radius: 5px; background: var(--blue-100); color: var(--blue-700); flex-shrink: 0; letter-spacing: .02em; }
+.model-tag.rn { background: #ECFDF5; color: var(--green-600); }
+.model-tag.pro { background: var(--amber-100); color: #92400E; }
+
+/* Conversations */
+.conv-section { padding: .5rem .75rem; flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.new-chat-btn { display: flex; align-items: center; gap: .5rem; width: 100%; padding: .55rem .7rem; border: 1.5px dashed var(--border); border-radius: var(--radius); background: none; color: var(--blue-600); font-size: .78rem; font-weight: 600; transition: all .2s; margin-bottom: .4rem; }
+.new-chat-btn:hover { border-color: var(--blue-400); background: var(--blue-50); }
+.conv-list { flex: 1; overflow-y: auto; }
+.conv-item { display: flex; align-items: center; gap: .45rem; padding: .5rem .7rem; border-radius: var(--radius); cursor: pointer; transition: all .15s; margin-bottom: 2px; border: 1px solid transparent; }
+.conv-item:hover { background: var(--slate-50); }
+.conv-item.active { background: var(--blue-50); border-color: var(--blue-100); }
+.conv-icon { font-size: .75rem; flex-shrink: 0; opacity: .5; }
+.conv-item.active .conv-icon { opacity: 1; }
+.conv-title { flex: 1; font-size: .78rem; color: var(--slate-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conv-item.active .conv-title { color: var(--blue-700); font-weight: 500; }
+.conv-del { opacity: 0; background: none; border: none; color: var(--slate-400); font-size: .8rem; padding: 2px 4px; border-radius: 4px; transition: opacity .15s; flex-shrink: 0; }
+.conv-item:hover .conv-del { opacity: 1; }
+.conv-del:hover { color: var(--red-500); }
+
+/* Sidebar Bottom */
+.sidebar-footer { padding: .75rem; border-top: 1px solid var(--border); }
+.sidebar-user { display: flex; align-items: center; gap: .6rem; padding: .5rem .6rem; border-radius: var(--radius); margin-bottom: .4rem; background: var(--slate-50); }
+.user-ava { width: 28px; height: 28px; border-radius: 50%; background: var(--blue-600); display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: .78rem; font-weight: 600; color: var(--slate-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role { font-size: .62rem; color: var(--text-muted); }
+.logout-btn { background: none; border: none; color: var(--slate-400); font-size: .8rem; padding: 4px; border-radius: 5px; transition: color .15s; }
+.logout-btn:hover { color: var(--red-500); }
+.sidebar-links { display: flex; gap: .3rem; }
+.sidebar-link { flex: 1; padding: .5rem .4rem; border: 1px solid var(--border); border-radius: var(--radius); background: none; color: var(--text-secondary); font-size: .72rem; font-weight: 500; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: .3rem; }
+.sidebar-link:hover { background: var(--blue-50); color: var(--blue-600); border-color: var(--blue-200); }
+
+/* ── MAIN CONTENT ── */
+#mainContent { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; background: var(--bg); }
+
+/* Topbar */
+.topbar { height: 54px; background: var(--white); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 1rem; gap: .75rem; flex-shrink: 0; }
+.menu-btn { display: none; background: none; border: none; color: var(--text-secondary); font-size: 1.1rem; padding: 4px; }
+.topbar-left { flex: 1; display: flex; align-items: center; gap: .6rem; min-width: 0; }
+.topbar-model-badge { display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .65rem; background: var(--blue-50); border: 1px solid var(--blue-200); border-radius: 20px; font-size: .72rem; font-weight: 600; color: var(--blue-700); flex-shrink: 0; }
+.topbar-model-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue-600); }
+.topbar-title { font-size: .82rem; font-weight: 500; color: var(--slate-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar-right { display: flex; align-items: center; gap: .3rem; flex-shrink: 0; }
+.topbar-btn { width: 34px; height: 34px; background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: .9rem; transition: all .2s; }
+.topbar-btn:hover { background: var(--blue-50); border-color: var(--blue-200); color: var(--blue-600); }
+.topbar-btn.active { background: var(--blue-50); border-color: var(--blue-200); color: var(--blue-600); }
+
+/* Voice Bar */
+.voice-bar { display: none; align-items: center; gap: .75rem; padding: .45rem 1rem; background: var(--teal-100); border-bottom: 1px solid #A7F3D0; font-size: .75rem; color: #065F46; flex-shrink: 0; }
+.voice-bar.show { display: flex; }
+.voice-wave { display: flex; gap: 2px; align-items: center; }
+.voice-wave span { width: 3px; background: var(--teal-500); border-radius: 2px; animation: wave .9s infinite; }
+.voice-wave span:nth-child(1){height:6px;animation-delay:0s}
+.voice-wave span:nth-child(2){height:12px;animation-delay:.1s}
+.voice-wave span:nth-child(3){height:18px;animation-delay:.2s}
+.voice-wave span:nth-child(4){height:12px;animation-delay:.3s}
+.voice-wave span:nth-child(5){height:6px;animation-delay:.4s}
+@keyframes wave{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+.voice-stop { background: none; border: 1px solid #6EE7B7; border-radius: 5px; padding: 2px 8px; color: #065F46; font-size: .7rem; cursor: pointer; }
+
+/* Chat Area */
+#chatArea { flex: 1; overflow-y: auto; padding: 1.5rem 1rem; display: flex; flex-direction: column; gap: 1rem; scroll-behavior: smooth; }
+
+/* Welcome State */
+.welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem; max-width: 640px; margin: 0 auto; width: 100%; }
+.welcome-mark { width: 60px; height: 60px; background: var(--blue-600); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.2rem; box-shadow: 0 8px 24px rgba(26,86,219,.25); }
+.welcome h2 { font-size: 1.25rem; font-weight: 700; color: var(--slate-800); margin-bottom: .4rem; }
+.welcome h2 span { color: var(--blue-600); font-family: 'Lora', serif; font-style: italic; }
+.welcome p { color: var(--text-secondary); font-size: .88rem; line-height: 1.7; max-width: 420px; }
+.welcome-chips { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; margin-top: 1.25rem; }
+.chip { padding: .4rem .85rem; background: var(--white); border: 1.5px solid var(--border); border-radius: 20px; color: var(--slate-600); font-size: .77rem; cursor: pointer; transition: all .2s; box-shadow: var(--shadow-sm); }
+.chip:hover { border-color: var(--blue-400); color: var(--blue-700); background: var(--blue-50); }
+
+/* Messages */
+.msg { display: flex; gap: .65rem; animation: fadeUp .25s ease; max-width: 760px; align-self: flex-start; width: 100%; }
+.msg.user { flex-direction: row-reverse; align-self: flex-end; }
+.msg-ava { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .68rem; font-weight: 700; }
+.msg.ai .msg-ava { background: var(--blue-600); color: #fff; }
+.msg.user .msg-ava { background: var(--slate-200); color: var(--slate-600); }
+.msg-body { max-width: 82%; }
+.msg.user .msg-body { align-items: flex-end; display: flex; flex-direction: column; }
+.msg-sender { font-size: .65rem; color: var(--text-muted); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-bottom: .3rem; }
+.bubble { padding: .8rem 1rem; border-radius: 14px; font-size: .87rem; line-height: 1.7; }
+.msg.ai .bubble { background: var(--white); border: 1px solid var(--border); border-top-left-radius: 4px; color: var(--text); box-shadow: var(--shadow-sm); }
+.msg.user .bubble { background: var(--blue-600); color: #fff; border-top-right-radius: 4px; }
+.bubble strong { font-weight: 600; color: var(--blue-700); }
+.msg.user .bubble strong { color: var(--blue-200); }
+.bubble em { color: var(--blue-600); font-style: italic; }
+.bubble code { font-family: 'Courier New', monospace; font-size: .82rem; background: var(--blue-50); padding: 1px 5px; border-radius: 4px; color: var(--blue-700); }
+.bubble ul, .bubble ol { margin: .4rem 0 .4rem 1.1rem; }
+.bubble li { margin-bottom: .2rem; }
+.clinical-note { margin-top: .65rem; padding: .55rem .75rem; background: var(--blue-50); border-left: 3px solid var(--blue-500); border-radius: 0 8px 8px 0; font-size: .8rem; color: var(--slate-600); }
+.clinical-note strong { color: var(--blue-600); }
+.warn-note { margin-top: .65rem; padding: .55rem .75rem; background: var(--amber-100); border-left: 3px solid var(--amber-500); border-radius: 0 8px 8px 0; font-size: .8rem; color: #92400E; }
+.msg-actions { display: flex; gap: .25rem; margin-top: .35rem; opacity: 0; transition: opacity .15s; }
+.msg:hover .msg-actions { opacity: 1; }
+.msg-act { background: var(--white); border: 1px solid var(--border); border-radius: 6px; padding: 2px 7px; color: var(--text-muted); font-size: .65rem; transition: all .15s; }
+.msg-act:hover { border-color: var(--blue-300); color: var(--blue-600); }
+
+/* Typing */
+.typing-msg { display: flex; gap: .65rem; }
+.typing-bub { background: var(--white); border: 1px solid var(--border); border-radius: 14px; border-top-left-radius: 4px; padding: .75rem .9rem; display: flex; gap: 4px; align-items: center; box-shadow: var(--shadow-sm); }
+.tdot { width: 7px; height: 7px; border-radius: 50%; background: var(--slate-300); animation: bounce .9s infinite; }
+.tdot:nth-child(2){animation-delay:.15s}.tdot:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-5px);opacity:1}}
+
+/* Input */
+.input-area { padding: .875rem 1rem 1rem; border-top: 1px solid var(--border); background: var(--white); flex-shrink: 0; }
+.input-bar { display: flex; gap: .5rem; align-items: flex-end; background: var(--white); border: 1.5px solid var(--border); border-radius: 12px; padding: .6rem .7rem; max-width: 760px; margin: 0 auto; transition: all .2s; box-shadow: var(--shadow-sm); }
+.input-bar:focus-within { border-color: var(--blue-500); box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+.input-bar textarea { flex: 1; background: none; border: none; outline: none; color: var(--text); font-size: .88rem; line-height: 1.5; resize: none; min-height: 22px; max-height: 120px; overflow-y: auto; }
+.input-bar textarea::placeholder { color: var(--text-muted); }
+.input-btns { display: flex; gap: .3rem; align-items: center; flex-shrink: 0; }
+.iBtn { width: 30px; height: 30px; background: none; border: 1px solid var(--border); border-radius: 7px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: .85rem; transition: all .2s; }
+.iBtn:hover { border-color: var(--blue-300); color: var(--blue-600); background: var(--blue-50); }
+.iBtn.active { background: var(--red-100); border-color: #FECACA; color: var(--red-500); }
+.send-btn { width: 32px; height: 32px; background: var(--blue-600); border: none; border-radius: 8px; color: #fff; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+.send-btn:hover { background: var(--blue-700); transform: scale(1.05); }
+.send-btn:disabled { background: var(--slate-200); color: var(--slate-400); transform: none; }
+.input-hint { text-align: center; font-size: .65rem; color: var(--text-muted); margin-top: .45rem; max-width: 760px; margin-left: auto; margin-right: auto; }
+
+/* ── MODALS ── */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,.4); backdrop-filter: blur(3px); z-index: 500; align-items: center; justify-content: center; padding: 1rem; }
+.overlay.open { display: flex; }
+.modal { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-xl); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); animation: fadeUp .3s ease; }
+.modal-head { padding: 1.25rem 1.5rem 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-title { font-size: .95rem; font-weight: 700; color: var(--slate-800); }
+.modal-x { width: 28px; height: 28px; background: var(--slate-100); border: 1px solid var(--border); border-radius: 7px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: .9rem; transition: all .15s; }
+.modal-x:hover { background: var(--red-100); color: var(--red-500); border-color: #FECACA; }
+.modal-body { padding: 1.25rem 1.5rem; }
+.set-section { margin-bottom: 1.25rem; }
+.set-label { font-size: .65rem; font-weight: 700; color: var(--text-muted); letter-spacing: .12em; text-transform: uppercase; margin-bottom: .5rem; }
+.set-row { display: flex; align-items: center; gap: .75rem; padding: .65rem .8rem; background: var(--slate-50); border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: .3rem; }
+.set-row-text { flex: 1; }
+.set-row-label { font-size: .82rem; font-weight: 500; color: var(--slate-700); }
+.set-row-sub { font-size: .68rem; color: var(--text-muted); }
+.toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.tslider { position: absolute; inset: 0; background: var(--slate-200); border-radius: 20px; cursor: pointer; transition: .2s; }
+.tslider::before { content: ''; position: absolute; width: 14px; height: 14px; background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+input:checked+.tslider { background: var(--blue-600); }
+input:checked+.tslider::before { transform: translateX(16px); }
+.theme-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: .4rem; }
+.tswatch { aspect-ratio: 1; border-radius: 9px; cursor: pointer; border: 2px solid transparent; transition: all .2s; overflow: hidden; position: relative; }
+.tswatch.active { border-color: var(--blue-600); box-shadow: 0 0 0 3px rgba(26,86,219,.15); }
+.tswatch span { position: absolute; bottom: 3px; left: 0; right: 0; text-align: center; font-size: .55rem; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,.5); }
+.api-wrap { position: relative; }
+.api-wrap input { padding-right: 70px; }
+.api-eye { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); font-size: .75rem; cursor: pointer; }
+.key-stat { display: flex; align-items: center; gap: .35rem; font-size: .72rem; margin-top: .35rem; }
+.ks-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.save-btn { width: 100%; padding: .7rem; background: var(--blue-600); border: none; border-radius: var(--radius); color: #fff; font-weight: 600; font-size: .88rem; transition: all .2s; margin-top: .25rem; }
+.save-btn:hover { background: var(--blue-700); transform: translateY(-1px); }
+
+/* About Modal */
+.about-hero { background: linear-gradient(135deg, var(--blue-50), var(--blue-100)); border-radius: var(--radius-lg); padding: 1.5rem; text-align: center; margin-bottom: 1.25rem; border: 1px solid var(--blue-200); }
+.dev-ava { width: 76px; height: 76px; border-radius: 50%; margin: 0 auto .75rem; border: 3px solid var(--blue-600); box-shadow: 0 4px 16px rgba(26,86,219,.25); overflow: hidden; background: linear-gradient(135deg, #1E3A8A, #1A56DB); display: flex; align-items: center; justify-content: center; }
+.dev-name { font-size: 1rem; font-weight: 700; color: var(--slate-800); margin-bottom: .2rem; }
+.dev-role { font-size: .75rem; color: var(--blue-600); font-weight: 500; }
+.dev-loc { font-size: .7rem; color: var(--text-muted); margin-top: .2rem; }
+.mission-box { background: var(--white); border-radius: var(--radius); padding: .9rem; border: 1px solid var(--border); font-size: .82rem; color: var(--slate-600); line-height: 1.7; margin-bottom: 1rem; }
+.mission-box strong { color: var(--blue-700); }
+.about-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: .5rem; margin-bottom: 1rem; }
+.about-stat { background: var(--slate-50); border: 1px solid var(--border); border-radius: var(--radius); padding: .7rem; text-align: center; }
+.stat-num { font-size: 1.1rem; font-weight: 700; color: var(--blue-600); }
+.stat-label { font-size: .62rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em; }
+.model-cards-about { display: flex; flex-direction: column; gap: .4rem; }
+.model-about-card { background: var(--slate-50); border: 1px solid var(--border); border-radius: var(--radius); padding: .75rem; display: flex; gap: .7rem; }
+.ma-tag { font-size: .62rem; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: var(--blue-100); color: var(--blue-700); flex-shrink: 0; margin-top: 2px; white-space: nowrap; }
+.ma-title { font-size: .8rem; font-weight: 600; color: var(--slate-700); margin-bottom: .15rem; }
+.ma-desc { font-size: .73rem; color: var(--text-muted); line-height: 1.6; }
+
+/* Export */
+.export-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: .5rem; margin-bottom: .75rem; }
+.export-card { background: var(--slate-50); border: 1.5px solid var(--border); border-radius: var(--radius); padding: .9rem; text-align: center; cursor: pointer; transition: all .2s; }
+.export-card:hover { border-color: var(--blue-400); background: var(--blue-50); }
+.export-icon { font-size: 1.5rem; margin-bottom: .35rem; }
+.export-name { font-size: .75rem; font-weight: 600; color: var(--slate-700); }
+.export-type { font-size: .62rem; color: var(--text-muted); }
+
+/* Toast */
+#toasts { position: fixed; top: 1rem; right: 1rem; z-index: 9000; display: flex; flex-direction: column; gap: .35rem; }
+.toast { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: .65rem .9rem; font-size: .8rem; color: var(--text); box-shadow: var(--shadow); animation: slideIn .25s ease; max-width: 270px; display: flex; align-items: center; gap: .45rem; }
+.toast.ok { border-color: #BBF7D0; background: #F0FDF4; color: var(--green-600); }
+.toast.err { border-color: #FECACA; background: #FEF2F2; color: var(--red-500); }
+.toast.info { border-color: var(--blue-200); background: var(--blue-50); color: var(--blue-700); }
+@keyframes slideIn{from{transform:translateX(105%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* Mobile sidebar overlay */
+.mob-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,.3); z-index: 99; }
+
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Responsive */
+@media(max-width:900px){
+  .landing-container { flex-direction: column; gap: 2rem; }
+  .scenario-grid { grid-template-columns: 1fr; }
+  .auth-card { max-width: 100%; }
+}
+@media(max-width:768px){
+  #sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);z-index:200;box-shadow:var(--shadow-lg)}
+  #sidebar.open{transform:translateX(0)}
+  .mob-overlay.open{display:block}
+  .menu-btn{display:flex}
+  .msg-body{max-width:90%}
+}
+</style>
+</head>
+<body>
+
+<div id="authScreen">
+  <div class="auth-bg"></div>
+  
+  <div class="landing-container">
+    <div class="landing-info">
+      <h1 class="landing-hero-title">Elevate your practice with <span>Atlas RN</span></h1>
+      <p class="landing-hero-sub">Your intelligent clinical companion. Whether you are studying for your boards, calculating complex pediatric dosages, or managing emergency protocols on the floor.</p>
+      
+      <div class="scenario-grid">
+        <div class="scenario-card">
+          <div class="scenario-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <div class="scenario-title">Emergency Protocols</div>
+          <div class="scenario-desc">"Walk me through the priority steps for the Sepsis 6 bundle and hourly targets."</div>
+        </div>
+        <div class="scenario-card">
+          <div class="scenario-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          </div>
+          <div class="scenario-title">Clinical Calculations</div>
+          <div class="scenario-desc">"Calculate the IV drip rate: 1000mL Normal Saline over 8 hours with a drop factor of 15."</div>
+        </div>
+        <div class="scenario-card">
+          <div class="scenario-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+          </div>
+          <div class="scenario-title">Care Planning</div>
+          <div class="scenario-desc">"Help me draft a NANDA care plan for a patient experiencing acute post-operative pain."</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="auth-brand-mark">
+          <svg width="22" height="22" viewBox="0 0 38 38" fill="none">
+            <circle cx="19" cy="19" r="13" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" fill="none"/>
+            <polyline points="6,20 10,20 12,13 14,26 16,19 20,19 22,15 24,23 26,19 32,19" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <rect x="17" y="8" width="4" height="7" rx="1.5" fill="white"/>
+            <rect x="14" y="10" width="10" height="4" rx="1.5" fill="white"/>
+          </svg>
+        </div>
+        <div class="auth-brand-text">
+          <div class="auth-brand-name">Atlas <span>RN</span></div>
+          <div class="auth-brand-sub">Clinical Intelligence</div>
+        </div>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="authTab('login',this)">Sign In</button>
+        <button class="auth-tab" onclick="authTab('signup',this)">Register</button>
+      </div>
+
+      <div id="authErr" class="auth-error"></div>
+
+      <div id="loginForm">
+        <div class="form-group">
+          <label class="form-label">Email or Username</label>
+          <input class="form-input" id="li_id" type="text" placeholder="Enter your credentials" autocomplete="username"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-input" id="li_pw" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+        </div>
+        <button class="auth-btn" onclick="doLogin()">Sign In to Atlas RN</button>
+      </div>
+
+      <div id="signupForm" style="display:none">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input class="form-input" id="su_name" type="text" placeholder="e.g. Ibrahim Abubakar"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="su_email" type="email" placeholder="your@email.com" autocomplete="email"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Role</label>
+          <select class="form-input" id="su_role">
+            <option>Student Nurse</option>
+            <option>Registered Nurse</option>
+            <option>Nurse Practitioner</option>
+            <option>Nurse Educator</option>
+            <option>Other Healthcare Professional</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-input" id="su_pw" type="password" placeholder="Minimum 6 characters" autocomplete="new-password" onkeydown="if(event.key==='Enter')doSignup()"/>
+        </div>
+        <button class="auth-btn" onclick="doSignup()">Create My Account</button>
+      </div>
+
+      <div class="auth-footer">Your data is stored only on this device and never shared</div>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="mob-overlay" id="mobOverlay" onclick="closeSidebar()"></div>
+
+  <nav id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-mark">
+        <svg width="18" height="18" viewBox="0 0 38 38" fill="none">
+          <circle cx="19" cy="19" r="12" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" fill="none"/>
+          <polyline points="7,20 11,20 13,13 15,26 17,19 21,19 23,15 25,23 27,19 31,19" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+          <rect x="17" y="9" width="4" height="6" rx="1.5" fill="white"/>
+          <rect x="15" y="11" width="8" height="3" rx="1.5" fill="white"/>
+        </svg>
+      </div>
+      <div>
+        <div class="sidebar-brand-name">Atlas <span>RN</span></div>
+        <div class="sidebar-brand-sub">v2.1 · Clinical AI</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">AI Model</div>
+      <div class="model-list">
+        <button class="model-item active" data-model="sn102" onclick="switchModel('sn102')">
+          <div class="model-pip"></div>
+          <div class="model-item-text">
+            <div class="model-item-name">Student Nurse</div>
+            <div class="model-item-desc">Simple &amp; clear</div>
+          </div>
+          <span class="model-tag">SN 102</span>
+        </button>
+        <button class="model-item" data-model="rn390" onclick="switchModel('rn390')">
+          <div class="model-pip"></div>
+          <div class="model-item-text">
+            <div class="model-item-name">Practitioner</div>
+            <div class="model-item-desc">Advanced clinical</div>
+          </div>
+          <span class="model-tag rn">RN 390</span>
+        </button>
+        <button class="model-item" data-model="pro10" onclick="switchModel('pro10')">
+          <div class="model-pip"></div>
+          <div class="model-item-text">
+            <div class="model-item-name">Expert</div>
+            <div class="model-item-desc">Exams &amp; calculations</div>
+          </div>
+          <span class="model-tag pro">PRO 1.0</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="conv-section">
+      <div class="section-label">Conversations</div>
+      <button class="new-chat-btn" onclick="newConv()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New conversation
+      </button>
+      <div class="conv-list" id="convList"></div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-ava" id="sideAva">?</div>
+        <div class="user-info">
+          <div class="user-name" id="sideName">User</div>
+          <div class="user-role" id="sideRole">Nurse</div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()" title="Sign out">⏻</button>
+      </div>
+      <div class="sidebar-links">
+        <button class="sidebar-link" onclick="openM('aboutM')">ℹ About</button>
+        <button class="sidebar-link" onclick="openM('settingsM')">⚙ Settings</button>
+      </div>
+    </div>
+  </nav>
+
+  <div id="mainContent">
+    <div class="topbar">
+      <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+      <div class="topbar-left">
+        <div class="topbar-model-badge">
+          <div class="dot"></div>
+          <span id="tbBadge">SN 102</span>
+        </div>
+        <span class="topbar-title" id="tbTitle">Student Nurse Mode — Simple &amp; Clear</span>
+      </div>
+      <div class="topbar-right">
+        <button class="topbar-btn" id="voiceBtn" onclick="toggleVoice()" title="Voice">🔊</button>
+        <button class="topbar-btn" onclick="openM('exportM')" title="Export">📄</button>
+        <button class="topbar-btn" onclick="reqNotif()" title="Notifications">🔔</button>
+      </div>
+    </div>
+
+    <div class="voice-bar" id="voiceBar">
+      <div class="voice-wave"><span></span><span></span><span></span><span></span><span></span></div>
+      <span>Reading aloud...</span>
+      <button class="voice-stop" onclick="stopVoice()">■ Stop</button>
+    </div>
+
+    <div id="chatArea"></div>
+
+    <div class="input-area">
+      <div class="input-bar">
+        <textarea id="userInput" rows="1" placeholder="Ask a clinical question..." onkeydown="handleKey(event)" oninput="resize(this)"></textarea>
+        <div class="input-btns">
+          <button class="iBtn" id="micBtn" onclick="toggleMic()" title="Voice input">🎤</button>
+          <button class="send-btn" id="sendBtn" onclick="send()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="input-hint">Atlas RN supports clinical learning — always verify critical decisions with your institution and senior clinicians.</div>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<div class="overlay" id="settingsM">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Settings</div>
+      <button class="modal-x" onclick="closeM('settingsM')">✕</button>
+    </div>
+    <div class="modal-body">
+      
+      <div class="set-section">
+        <div class="set-label">API Configuration (Open-Source / OpenAI Format)</div>
+        
+        <div class="form-group" style="margin-bottom:.5rem;">
+          <label class="form-label" style="font-size: .7rem; font-weight: normal;">API Base URL</label>
+          <input class="form-input" id="apiBaseUrl" placeholder="e.g. https://api.openai.com/v1 or http://localhost:1234/v1"/>
+        </div>
+        
+        <div class="form-group" style="margin-bottom:.5rem;">
+          <label class="form-label" style="font-size: .7rem; font-weight: normal;">Model ID</label>
+          <input class="form-input" id="apiModel" placeholder="e.g. gpt-3.5-turbo, llama3-8b"/>
+        </div>
+
+        <div class="api-wrap">
+          <label class="form-label" style="font-size: .7rem; font-weight: normal;">API Key (Optional for local servers)</label>
+          <input class="form-input" id="apiInp" type="password" placeholder="sk-..."/>
+          <button class="api-eye" style="top: 70%;" onclick="toggleEye()">👁</button>
+        </div>
+
+        <div class="key-stat">
+          <div class="ks-dot" id="ksDot" style="background:var(--red-500)"></div>
+          <span id="ksLabel" style="color:var(--red-500)">API not configured</span>
+        </div>
+      </div>
+
+      <div class="set-section">
+        <div class="set-label">Theme</div>
+        <div class="theme-grid">
+          <div class="tswatch active" data-t="clean" onclick="applyTheme('clean')" style="background:linear-gradient(135deg,#F7F9FC,#1A56DB)"><span style="color:#1E293B">Clean</span></div>
+          <div class="tswatch" data-t="slate" onclick="applyTheme('slate')" style="background:linear-gradient(135deg,#F8FAFC,#334155)"><span style="color:#1E293B">Slate</span></div>
+          <div class="tswatch" data-t="forest" onclick="applyTheme('forest')" style="background:linear-gradient(135deg,#F0FDF4,#16A34A)"><span style="color:#14532D">Forest</span></div>
+          <div class="tswatch" data-t="rose" onclick="applyTheme('rose')" style="background:linear-gradient(135deg,#FFF1F2,#E11D48)"><span>Rose</span></div>
+          <div class="tswatch" data-t="navy" onclick="applyTheme('navy')" style="background:linear-gradient(135deg,#E0F2FE,#0C4A6E)"><span>Navy</span></div>
+        </div>
+      </div>
+
+      <div class="set-section">
+        <div class="set-label">Voice</div>
+        <div class="set-row">
+          <div class="set-row-text"><div class="set-row-label">Auto-read responses</div><div class="set-row-sub">Speak AI responses aloud</div></div>
+          <label class="toggle"><input type="checkbox" id="autoRead"/><span class="tslider"></span></label>
+        </div>
+        <div class="set-row" style="margin-top:.3rem">
+          <div class="set-row-label">Speed</div>
+          <input type="range" id="vRate" min="0.5" max="2" step="0.1" value="1" style="width:80px;accent-color:var(--blue-600)"/>
+        </div>
+      </div>
+
+      <div class="set-section">
+        <div class="set-label">Notifications</div>
+        <div class="set-row">
+          <div class="set-row-text"><div class="set-row-label">Push notifications</div><div class="set-row-sub">Alerts for new responses</div></div>
+          <button onclick="reqNotif()" style="background:var(--blue-50);border:1px solid var(--blue-200);border-radius:7px;padding:4px 10px;color:var(--blue-600);font-size:.72rem;cursor:pointer;font-weight:500">Enable</button>
+        </div>
+      </div>
+
+      <button class="save-btn" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="aboutM">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">About Atlas RN</div>
+      <button class="modal-x" onclick="closeM('aboutM')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="about-hero">
+        <div class="dev-ava">
+          <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+            <ellipse cx="36" cy="64" rx="18" ry="14" fill="#1E3A8A"/>
+            <path d="M25 56 Q23 60 26 63 Q29 66 29 70" stroke="#60A5FA" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <circle cx="29" cy="71" r="2" fill="#60A5FA"/>
+            <rect x="31" y="44" width="10" height="9" rx="3" fill="#92604A"/>
+            <ellipse cx="36" cy="36" rx="13" ry="14" fill="#92604A"/>
+            <rect x="24" y="21" width="24" height="5" rx="2" fill="white"/>
+            <ellipse cx="36" cy="22" rx="13" ry="4" fill="white"/>
+            <rect x="34" y="21" width="4" height="7" rx="1" fill="#EF4444"/>
+            <rect x="32" y="24" width="8" height="3" rx="1" fill="#EF4444"/>
+            <ellipse cx="31" cy="35" rx="2.5" ry="3" fill="#1A0800"/>
+            <ellipse cx="41" cy="35" rx="2.5" ry="3" fill="#1A0800"/>
+            <circle cx="32" cy="34" r=".8" fill="white"/>
+            <circle cx="42" cy="34" r=".8" fill="white"/>
+            <path d="M32 42 Q36 46 40 42" stroke="#6B3A20" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="dev-name">Ibrahim Abubakar</div>
+        <div class="dev-role">General Nurse Practitioner · Software Innovator</div>
+        <div class="dev-loc">📍 Kano, Nigeria · Ahmadu Bello University</div>
+      </div>
+
+      <div class="mission-box">
+        <strong>Why Atlas RN exists.</strong> A working nurse built this because clinical tools cost $600/year and still miss the African healthcare context. Nurses make life-or-death calls every shift with inadequate support. This started as personal frustration and became a mission — to <strong>uplift the nursing profession</strong>, starting from Nigeria, reaching everywhere.
+      </div>
+
+      <div class="about-stats">
+        <div class="about-stat"><div class="stat-num">3</div><div class="stat-label">AI Models</div></div>
+        <div class="about-stat"><div class="stat-num">∞</div><div class="stat-label">Topics</div></div>
+        <div class="about-stat"><div class="stat-num">24/7</div><div class="stat-label">Available</div></div>
+      </div>
+
+      <div class="set-label" style="margin-bottom:.6rem">The Three Intelligences</div>
+      <div class="model-cards-about">
+        <div class="model-about-card"><span class="ma-tag">SN 102</span><div><div class="ma-title">Student Nurse</div><div class="ma-desc">Plain language, textbook-accurate, fast. For students in classrooms and clinical placements.</div></div></div>
+        <div class="model-about-card"><span class="ma-tag" style="background:#ECFDF5;color:#15803D">RN 390</span><div><div class="ma-title">Registered Nurse</div><div class="ma-desc">Graduate-level thinking. ICU, ER, OB, Pediatrics, Geriatrics. Adapts to your experience.</div></div></div>
+        <div class="model-about-card"><span class="ma-tag" style="background:var(--amber-100);color:#92400E">PRO 1.0</span><div><div class="ma-title">Professional Expert</div><div class="ma-desc">NCLEX, NRN, Partograph, Drug Calculations, Emergency Protocols, ACLS, Sepsis Bundles.</div></div></div>
+      </div>
+
+      <div style="margin-top:1rem;padding:.75rem;background:var(--blue-50);border-radius:var(--radius);border:1px solid var(--blue-100);font-size:.75rem;color:var(--blue-700);text-align:center;line-height:1.6">
+        Built in Nigeria for nurses everywhere · Atlas RN v2.1<br/>
+        <span style="font-style:italic;font-family:'Lora',serif">For the ones who carry the world.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="exportM">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Export Conversation</div>
+      <button class="modal-x" onclick="closeM('exportM')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:1rem">Save this conversation as a file for your records or study notes.</p>
+      <div class="export-grid">
+        <div class="export-card" onclick="doExport('pdf')"><div class="export-icon">📕</div><div class="export-name">PDF</div><div class="export-type">Clinical report</div></div>
+        <div class="export-card" onclick="doExport('docx')"><div class="export-icon">📘</div><div class="export-name">DOCX</div><div class="export-type">Word document</div></div>
+        <div class="export-card" onclick="doExport('txt')"><div class="export-icon">📃</div><div class="export-name">TXT</div><div class="export-type">Plain text</div></div>
+      </div>
+      <div style="font-size:.68rem;color:var(--text-muted);text-align:center">For reference only. Always verify with official clinical sources.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ── THEMES ──
+const THEMES = {
+  clean: {},
+  slate: { '--blue-600':'#334155','--blue-700':'#1E293B','--blue-50':'#F8FAFC','--blue-100':'#F1F5F9','--blue-200':'#E2E8F0','--border-focus':'#334155' },
+  forest: { '--blue-600':'#16A34A','--blue-700':'#15803D','--blue-50':'#F0FDF4','--blue-100':'#DCFCE7','--blue-200':'#BBF7D0','--border-focus':'#16A34A' },
+  rose: { '--blue-600':'#E11D48','--blue-700':'#BE123C','--blue-50':'#FFF1F2','--blue-100':'#FFE4E6','--blue-200':'#FECDD3','--border-focus':'#E11D48' },
+  navy: { '--blue-600':'#0C4A6E','--blue-700':'#082F49','--blue-50':'#E0F2FE','--blue-100':'#BAE6FD','--blue-200':'#7DD3FC','--border-focus':'#0C4A6E' }
+};
+function applyTheme(name, silent=false) {
+  const root = document.documentElement;
+  Object.keys(THEMES.clean).forEach(k => root.style.removeProperty(k));
+  const t = THEMES[name] || {};
+  Object.entries(t).forEach(([k,v]) => root.style.setProperty(k,v));
+  document.querySelectorAll('.tswatch').forEach(s => s.classList.toggle('active', s.dataset.t === name));
+  if (!silent) { const s = S(); s.theme = name; LS('atlas_s', s); toast('Theme applied', 'ok'); }
+}
+
+// ── STORAGE HELPERS ──
+const LS = (k,v) => { if(v===undefined) { try{return JSON.parse(localStorage.getItem(k)||'null')}catch{return null} } localStorage.setItem(k,JSON.stringify(v)); };
+const SS = (k,v) => { if(v===undefined) { try{return JSON.parse(sessionStorage.getItem(k)||'null')}catch{return null} } sessionStorage.setItem(k,JSON.stringify(v)); };
+const S = () => LS('atlas_s') || {};
+
+// ── APP STATE ──
+const A = { user:null, model:'sn102', convId:null, convs:{}, busy:false, synth:window.speechSynthesis||null, rec:null, micOn:false };
+
+// ── MODELS ──
+const MODELS = {
+  sn102:{
+    badge:'SN 102', title:'Student Nurse Mode — Simple & Clear',
+    welcome:"Hello! I'm SN 102, your student nurse companion. I keep things simple and clear. Ask me anything — from basic anatomy to medication fundamentals.",
+    chips:['Normal vital signs ranges','5 rights of medication','What is tachycardia?','How to perform a bed bath','Basic wound dressing steps','What is a nursing care plan?'],
+    sys:`You are SN 102, the student nurse AI module of Atlas RN. Tone: Warm, encouraging, plain language — like a helpful senior student. Explain any jargon immediately. Write for a Year 1 nursing student. Scope: Basic anatomy and physiology, fundamental nursing skills (vital signs, hygiene, bed making, wound dressing), medication principles (5 rights, routes, common drug classes), nursing process ADPIE, patient safety, basic NANDA diagnoses, study tips. Rules: 1. Keep answers concise and focused 2. Number procedural steps 3. Bold key terms 4. End clinical answers with a short "Remember:" line 5. For drug doses, add "confirm with your supervisor" 6. Be encouraging — nursing training is hard 7. Mention Nigerian/African context where relevant`
+  },
+  rn390:{
+    badge:'RN 390', title:'Practitioner Mode — Advanced Clinical',
+    welcome:"RN 390 online. Built for working nurses and nurse practitioners. Bring your complex cases, advanced pharmacology questions, and specialized unit challenges.",
+    chips:['Sepsis management bundle','Eclampsia emergency steps','ICU ventilator basics','Post-operative nursing care','Pediatric IV fluid calculation','NPUAP pressure ulcer staging'],
+    sys:`You are RN 390, the advanced clinical AI module of Atlas RN — operating at experienced registered nurse / nurse practitioner level. Tone: Professional, direct, evidence-based. Like a knowledgeable charge nurse. Scope: Advanced clinical assessment, specialized nursing (ICU/CCU, ER, OR, OB/Maternity, Pediatrics, Geriatrics, Oncology, Psych, Community), advanced pharmacology including drug interactions, pathophysiology and clinical reasoning, NANDA/NOC/NIC care planning, infection control, IV therapy, TPN, blood transfusion, maternal health, palliative care, nursing leadership and documentation. Rules: 1. Use clear headers or bold sections to structure answers 2. Explain clinical rationale — not just what but why 3. Mention Nigerian/African context where relevant (drug availability, local protocols) 4. State clearly when a physician consultation is needed 5. For drug answers: Name → Class → Mechanism → Dose → Nursing Considerations → Watch for 6. Adapt to the user's experience level as revealed in conversation 7. End complex answers with "Clinical Priority:" summary`
+  },
+  pro10:{
+    badge:'PRO 1.0', title:'Expert Mode — Exams, Calculations & Protocols',
+    welcome:"PRO 1.0 ready. NCLEX questions, clinical calculations, partograph interpretation, emergency protocols. What are we tackling today?",
+    chips:['Calculate IV drip rate','BMI calculation example','NCLEX practice question','APGAR score breakdown','Sepsis 6 bundle','Anaphylaxis protocol','Dopamine mcg/kg/min drip','ACLS VF/pVT algorithm'],
+    sys:`You are PRO 1.0, the expert module of Atlas RN — consultant nurse and clinical expert level. Tone: Precise, structured, exam-grade accurate. EXAM PREP: NCLEX-RN, NCLEX-PN (all content areas, SATA, priority), Nigerian NRN exam, BNSc/MSN post-basic exams. For every question: correct answer + rationale + why distractors are wrong. CALCULATIONS (always show: formula → plug in values → working → answer with units): - IV drip rate: (Volume mL × Drop factor) ÷ Time in minutes - mL/hr: Volume ÷ Time hours - Drug dose: (Required ÷ Available) × Volume - Weight-based: dose mg/kg × weight - mcg/kg/min: (Dose mcg/kg/min × weight kg × 60) ÷ concentration mcg/mL - Pediatric dosing: Clark's rule, Young's rule, weight-based - BMI: Weight(kg) ÷ Height(m)² - Burns: Rule of Nines, Parkland formula (4mL × kg × %BSA first 24hrs) - Creatinine clearance: Cockcroft-Gault OBSTETRIC: Partograph interpretation, Bishop score, APGAR per criterion, maternal risk assessment. EMERGENCY PROTOCOLS (numbered ABC-priority steps): - ACLS: VF/pVT, PEA, Asystole - BLS sequence - Sepsis 6 bundle - Stroke: BE-FAST, thrombolysis criteria - Anaphylaxis protocol - DKA management - Pre-eclampsia/Eclampsia emergency - Shock comparison table (hypovolemic/cardiogenic/distributive/obstructive) - Pediatric PALS basics - Trauma ABCDE primary survey ASSESSMENT SCALES: GCS full, SOFA, NEWS2, Braden, PHQ-9, CIWA-Ar, Wells DVT/PE, CURB-65. Rules: 1. Calculations: formula → values → working → answer with units 2. NCLEX: answer + rationale + why distractors wrong 3. Protocols: numbered priority steps 4. Use tables for comparisons 5. End with "📋 Clinical Takeaway:"`
+  }
+};
+
+// ── AUTH ──
+function authTab(tab, btn) {
+  document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('loginForm').style.display = tab==='login'?'block':'none';
+  document.getElementById('signupForm').style.display = tab==='signup'?'block':'none';
+  document.getElementById('authErr').style.display = 'none';
+}
+function authErr(m) { const e=document.getElementById('authErr'); e.textContent=m; e.style.display='block'; }
+function getUsers() { return LS('atlas_users') || {}; }
+function doLogin() {
+  const id=document.getElementById('li_id').value.trim();
+  const pw=document.getElementById('li_pw').value;
+  if(!id||!pw){authErr('Please fill all fields.');return}
+  const users=getUsers();
+  const user=Object.values(users).find(u=>u.email===id||u.name.toLowerCase()===id.toLowerCase());
+  if(!user||user.pw!==btoa(pw)){authErr('Incorrect credentials.');return}
+  SS('atlas_sess',user); boot(user);
+}
+function doSignup() {
+  const name=document.getElementById('su_name').value.trim();
+  const email=document.getElementById('su_email').value.trim();
+  const role=document.getElementById('su_role').value;
+  const pw=document.getElementById('su_pw').value;
+  if(!name||!email||!pw){authErr('Please fill all fields.');return}
+  if(pw.length<6){authErr('Password must be at least 6 characters.');return}
+  const users=getUsers();
+  if(Object.values(users).find(u=>u.email===email)){authErr('Email already registered.');return}
+  const id='u'+Date.now();
+  const user={id,name,email,role,pw:btoa(pw)};
+  users[id]=user; LS('atlas_users',users); SS('atlas_sess',user); boot(user);
+}
+function doLogout() { sessionStorage.removeItem('atlas_sess'); A.user=null; document.getElementById('app').classList.remove('visible'); document.getElementById('authScreen').style.display='flex'; }
+
+// ── BOOT ──
+function boot(user) {
+  A.user=user;
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('app').classList.add('visible');
+  const ini=user.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+  document.getElementById('sideAva').textContent=ini;
+  document.getElementById('sideName').textContent=user.name;
+  document.getElementById('sideRole').textContent=user.role;
+  loadSettings(); loadConvs();
+  if(!Object.keys(A.convs).length) newConv(); else loadConv(Object.keys(A.convs)[0]);
+  regSW();
+  toast('Welcome back, '+user.name.split(' ')[0]+'!','ok');
+  
+  const baseUrl = LS('atlas_baseUrl');
+  const modelName = LS('atlas_modelName');
+  if(!baseUrl || !modelName) setTimeout(()=>{openM('settingsM');toast('Configure your API Connection to start','info')},1500);
+}
+
+// ── CONVERSATIONS ──
+const ck=()=>'atlas_c_'+A.user.id;
+function loadConvs(){A.convs=LS(ck())||{};renderConvList();}
+function saveConvs(){LS(ck(),A.convs);}
+function newConv(){
+  const id='c'+Date.now();
+  A.convs[id]={id,title:'New Conversation',model:A.model,msgs:[]};
+  saveConvs(); loadConv(id); renderConvList();
+}
+function loadConv(id){
+  A.convId=id;
+  const c=A.convs[id]; if(!c)return;
+  A.model=c.model||A.model;
+  updateModelUI(); renderMsgs(); renderConvList();
+}
+function delConv(id,e){
+  e.stopPropagation(); delete A.convs[id]; saveConvs();
+  const ids=Object.keys(A.convs);
+  if(ids.length) loadConv(ids[0]); else newConv();
+  renderConvList();
+}
+function renderConvList(){
+  const el=document.getElementById('convList');
+  el.innerHTML=Object.values(A.convs).reverse().map(c=>`
+    <div class="conv-item ${c.id===A.convId?'active':''}" onclick="loadConv('${c.id}')">
+      <span class="conv-icon">💬</span>
+      <span class="conv-title">${esc(c.title)}</span>
+      <button class="conv-del" onclick="delConv('${c.id}',event)">✕</button>
+    </div>`).join('');
+}
+
+// ── MODEL SWITCHING ──
+function switchModel(m){
+  A.model=m;
+  if(A.convId&&A.convs[A.convId]){A.convs[A.convId].model=m;saveConvs();}
+  updateModelUI();
+  document.querySelectorAll('.model-item').forEach(el=>el.classList.toggle('active',el.dataset.model===m));
+  if(!A.convs[A.convId]?.msgs.length) renderMsgs();
+  toast('Switched to '+MODELS[m].badge,'info');
+}
+function updateModelUI(){
+  const m=MODELS[A.model];
+  document.getElementById('tbBadge').textContent=m.badge;
+  document.getElementById('tbTitle').textContent=m.title;
+}
+
+// ── MESSAGES ──
+function renderMsgs(){
+  const area=document.getElementById('chatArea');
+  const conv=A.convs[A.convId];
+  if(!conv||!conv.msgs.length){
+    const m=MODELS[A.model];
+    const chips=m.chips.map(c=>`<div class="chip" onclick="sendChip('${esc(c)}')">${esc(c)}</div>`).join('');
+    area.innerHTML=`<div class="welcome"><div class="welcome-mark"><svg width="28" height="28" viewBox="0 0 38 38" fill="none"><circle cx="19" cy="19" r="13" stroke="rgba(255,255,255,.5)" stroke-width="1.5" fill="none"/><polyline points="6,20 10,20 12,13 14,26 16,19 20,19 22,15 24,23 26,19 32,19" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="17" y="8" width="4" height="7" rx="1.5" fill="white"/><rect x="14" y="10" width="10" height="4" rx="1.5" fill="white"/></svg></div><h2>Hello, <span>${esc(A.user.name.split(' ')[0])}</span></h2><p>${esc(m.welcome)}</p><div class="welcome-chips">${chips}</div></div>`;
+    return;
+  }
+  area.innerHTML=conv.msgs.map((msg,i)=>msgHTML(msg,i)).join('');
+  area.scrollTop=area.scrollHeight;
+}
+function msgHTML(msg,i){
+  const ai=msg.role==='assistant';
+  const name=ai?(MODELS[A.model]?.badge||'Atlas RN'):(A.user?.name?.split(' ')[0]||'You');
+  const ini=ai?'RN':(A.user?.name?.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase()||'ME');
+  return`<div class="msg ${ai?'ai':'user'}"><div class="msg-ava">${ini}</div><div class="msg-body"><div class="msg-sender">${esc(name)}</div><div class="bubble">${fmt(msg.content)}</div><div class="msg-actions">${ai?`<button class="msg-act" onclick="speakI(${i})">🔊 Read</button>`:''}<button class="msg-act" onclick="copyI(${i})">📋 Copy</button></div></div></div>`;
+}
+function fmt(t){
+  if(!t)return'';
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/📋 Clinical Takeaway:(.*?)(?=\n|$)/g,'<div class="clinical-note">📋 <strong>Clinical Takeaway:</strong>$1</div>')
+    .replace(/⚠️(.*?)(?=\n|$)/g,'<div class="warn-note">⚠️$1</div>')
+    .replace(/📌(.*?)(?=\n|$)/g,'<div class="clinical-note">📌$1</div>')
+    .replace(/\n###\s?(.*)/g,'<strong style="font-size:.9rem;display:block;margin-top:.5rem;color:var(--blue-700)">$1</strong>')
+    .replace(/\n##\s?(.*)/g,'<strong style="font-size:.95rem;display:block;margin-top:.6rem">$1</strong>')
+    .replace(/\n[-•]\s?(.*)/g,'<li style="margin-bottom:.2rem">$1</li>')
+    .replace(/\n\d+\.\s?(.*)/g,'<li style="margin-bottom:.2rem">$1</li>')
+    .replace(/(<li[^>]*>[\s\S]*?<\/li>)/g,'<ul style="margin:.4rem 0 .4rem 1.1rem">$1</ul>')
+    .replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function addMsg(role,content){
+  const c=A.convs[A.convId]; if(!c)return;
+  c.msgs.push({role,content,time:new Date().toISOString()});
+  if(role==='user'&&c.msgs.filter(m=>m.role==='user').length===1) c.title=content.substring(0,42)+(content.length>42?'...':'');
+  saveConvs();
+}
+function showTyping(){
+  const area=document.getElementById('chatArea');
+  const d=document.createElement('div');d.id='typer';d.className='typing-msg';
+  d.innerHTML=`<div class="msg-ava" style="background:var(--blue-600);color:#fff;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;flex-shrink:0">RN</div><div class="typing-bub"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>`;
+  area.appendChild(d); area.scrollTop=area.scrollHeight;
+}
+function removeTyping(){const t=document.getElementById('typer');if(t)t.remove();}
+
+// ── SEND ──
+function sendChip(t){document.getElementById('userInput').value=t;send();}
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
+function resize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
+
+async function send(){
+  if(A.busy)return;
+  const inp=document.getElementById('userInput');
+  const text=inp.value.trim(); if(!text)return;
+  
+  const baseUrl = LS('atlas_baseUrl');
+  const modelName = LS('atlas_modelName');
+  const key = LS('atlas_key') || '';
+  
+  if(!baseUrl || !modelName){
+    openM('settingsM');
+    toast('Please configure your API Base URL and Model first','err');
+    return;
+  }
+  
+  inp.value='';inp.style.height='auto';
+  A.busy=true; document.getElementById('sendBtn').disabled=true;
+  const welcome=document.querySelector('.welcome'); if(welcome)welcome.remove();
+  
+  addMsg('user',text);
+  const area=document.getElementById('chatArea');
+  const conv=A.convs[A.convId];
+  area.innerHTML=conv.msgs.map((m,i)=>msgHTML(m,i)).join('');
+  area.scrollTop=area.scrollHeight;
+  showTyping();
+  
+  const apiMsgs = [{ role: 'system', content: MODELS[A.model].sys }];
+  conv.msgs.slice(-20).forEach(m => {
+    apiMsgs.push({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content });
+  });
+
+  try{
+    const headers = { 'Content-Type': 'application/json' };
+    if (key) headers['Authorization'] = `Bearer ${key}`;
+
+    const endpoint = baseUrl.endsWith('/') ? baseUrl + 'chat/completions' : baseUrl + '/chat/completions';
+
+    const res=await fetch(endpoint, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({
+        model: modelName,
+        messages: apiMsgs,
+        max_tokens: 1500,
+        temperature: 0.2
+      })
+    });
+    
+    const data=await res.json(); 
+    removeTyping();
+    
+    let reply = '';
+    if(data.error) {
+      reply = '⚠️ ' + (data.error.message || 'API Error');
+    } else if(data.choices && data.choices[0] && data.choices[0].message) {
+      reply = data.choices[0].message.content;
+    } else {
+      reply = 'No response received. Please check your API settings.';
+    }
+    
+    addMsg('assistant',reply);
+    if(document.getElementById('autoRead')?.checked) speakText(reply);
+    pushNotif('Atlas RN','New response ready');
+  }catch(e){
+    removeTyping();
+    addMsg('assistant','⚠️ Connection error. Please check your API Base URL and internet connection. Details: ' + e.message);
+  }
+  const c2=A.convs[A.convId];
+  area.innerHTML=c2.msgs.map((m,i)=>msgHTML(m,i)).join('');
+  area.scrollTop=area.scrollHeight;
+  renderConvList();
+  A.busy=false; document.getElementById('sendBtn').disabled=false; inp.focus();
+}
+
+// ── VOICE ──
+function speakI(i){const c=A.convs[A.convId];if(c?.msgs[i])speakText(c.msgs[i].content);}
+function speakText(text){
+  if(!A.synth)return; stopVoice();
+  const clean=text.replace(/[*_`#]/g,'').replace(/<[^>]+>/g,'');
+  const u=new SpeechSynthesisUtterance(clean);
+  u.rate=parseFloat(document.getElementById('vRate')?.value||'1');
+  u.lang='en-NG';
+  u.onstart=()=>{document.getElementById('voiceBar').classList.add('show');document.getElementById('voiceBtn').classList.add('active');};
+  u.onend=()=>{document.getElementById('voiceBar').classList.remove('show');document.getElementById('voiceBtn').classList.remove('active');};
+  A.synth.speak(u);
+}
+function stopVoice(){if(A.synth)A.synth.cancel();document.getElementById('voiceBar').classList.remove('show');document.getElementById('voiceBtn').classList.remove('active');}
+function toggleVoice(){if(A.synth?.speaking)stopVoice();else toast('Click 🔊 Read on any message to hear it','info');}
+function toggleMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast('Voice input not supported in this browser','err');return;}
+  const btn=document.getElementById('micBtn');
+  if(A.micOn){A.rec?.stop();A.micOn=false;btn.classList.remove('active');return;}
+  A.rec=new SR();A.rec.lang='en-NG';A.rec.continuous=false;A.rec.interimResults=false;
+  A.rec.onresult=e=>{document.getElementById('userInput').value=e.results[0][0].transcript;A.micOn=false;btn.classList.remove('active');};
+  A.rec.onerror=()=>{A.micOn=false;btn.classList.remove('active');};
+  A.rec.onend=()=>{A.micOn=false;btn.classList.remove('active');};
+  A.rec.start();A.micOn=true;btn.classList.add('active');toast('Listening...','info');
+}
+
+// ── COPY ──
+function copyI(i){const c=A.convs[A.convId];if(c?.msgs[i])navigator.clipboard.writeText(c.msgs[i].content).then(()=>toast('Copied!','ok'));}
+
+// ── EXPORT ──
+function doExport(type){
+  const conv=A.convs[A.convId];
+  if(!conv||!conv.msgs.length){toast('No messages to export','err');return;}
+  closeM('exportM');
+  const title=conv.title||'Atlas RN Conversation';
+  const ts=new Date().toLocaleString();
+  const model=MODELS[A.model]?.badge||'Atlas RN';
+  if(type==='pdf') exportPDF(conv,title,ts,model);
+  else if(type==='docx') exportDOCX(conv,title,ts,model);
+  else exportTXT(conv,title,ts,model);
+}
+function exportPDF(conv,title,ts,model){
+  if(typeof window.jspdf==='undefined'){toast('PDF library loading, try again','err');return;}
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'p',unit:'mm',format:'a4'});
+  const W=210,M=15,LH=6; let y=M;
+  doc.setFillColor(26,86,219);doc.rect(0,0,W,26,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(14);doc.setFont('helvetica','bold');doc.text('Atlas RN — Clinical Intelligence',M,12);
+  doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(191,219,254);doc.text('Model: '+model+' | '+ts,M,20);
+  y=34;doc.setTextColor(30,41,59);doc.setFontSize(10.5);doc.setFont('helvetica','bold');
+  const tl=doc.splitTextToSize(title,W-M*2);doc.text(tl,M,y);y+=tl.length*LH+3;
+  doc.setDrawColor(26,86,219);doc.setLineWidth(.4);doc.line(M,y,W-M,y);y+=6;
+  conv.msgs.forEach(msg=>{
+    const ai=msg.role==='assistant';
+    const clean=msg.content.replace(/[*_`#⚠️📋📌]/g,'');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);
+    doc.setTextColor(ai?26:71,ai?86:85,ai?219:104);
+    doc.text((ai?'ATLAS RN ['+model+']':'USER').toUpperCase(),M,y);y+=4.5;
+    doc.setFont('helvetica','normal');doc.setTextColor(51,65,85);doc.setFontSize(8.5);
+    const lines=doc.splitTextToSize(clean,W-M*2);
+    lines.forEach(line=>{if(y>275){doc.addPage();y=M;}doc.text(line,M,y);y+=LH*.82;});
+    y+=4;if(y>265){doc.addPage();y=M;}
+  });
+  const pages=doc.internal.getNumberOfPages();
+  for(let i=1;i<=pages;i++){doc.setPage(i);doc.setFontSize(7);doc.setTextColor(148,163,184);doc.text('Atlas RN · For clinical reference only · Not a substitute for professional judgment',M,290);doc.text(i+'/'+pages,W-M-8,290);}
+  doc.save('atlas-rn-'+Date.now()+'.pdf');toast('PDF exported!','ok');
+}
+function exportDOCX(conv,title,ts,model){
+  let c=`ATLAS RN — CLINICAL EXPORT\n${title}\nModel: ${model} | ${ts}\n${'─'.repeat(58)}\n\n`;
+  conv.msgs.forEach(m=>{c+=(m.role==='assistant'?`[${model}]`:'[User]')+'\n'+m.content.replace(/[*_`#]/g,'')+'\n\n';});
+  const b=new Blob(['\ufeff'+c],{type:'application/msword'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='atlas-rn-'+Date.now()+'.doc';a.click();
+  toast('Document exported!','ok');
+}
+function exportTXT(conv,title,ts,model){
+  let c=`ATLAS RN — CLINICAL EXPORT\n${title}\nModel: ${model} | ${ts}\n${'─'.repeat(58)}\n\n`;
+  conv.msgs.forEach(m=>{c+=(m.role==='assistant'?`[${model}]`:'[User]')+'\n'+m.content.replace(/[*_`#]/g,'')+'\n\n';});
+  const b=new Blob([c],{type:'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='atlas-rn-'+Date.now()+'.txt';a.click();
+  toast('Text exported!','ok');
+}
+
+// ── NOTIFICATIONS ──
+function reqNotif(){
+  if(!('Notification'in window)){toast('Notifications not supported','err');return;}
+  Notification.requestPermission().then(p=>{
+    if(p==='granted'){toast('Notifications enabled ✓','ok');new Notification('Atlas RN',{body:'You will now receive clinical alerts.'});}
+    else toast('Notification permission denied','err');
+  });
+}
+function pushNotif(title,body){if(Notification.permission==='granted'&&document.hidden)new Notification(title,{body});}
+
+// ── TOAST ──
+function toast(msg,type='info'){
+  const c=document.getElementById('toasts');
+  const t=document.createElement('div');t.className='toast '+type;
+  t.innerHTML=(type==='ok'?'✓ ':type==='err'?'⚠ ':'ℹ ')+esc(msg);
+  c.appendChild(t);
+  setTimeout(()=>{t.style.cssText+='opacity:0;transform:translateX(105%);transition:.3s';setTimeout(()=>t.remove(),300);},3000);
+}
+
+// ── SETTINGS ──
+function loadSettings(){
+  const s=S();
+  const baseUrl = LS('atlas_baseUrl') || '';
+  const modelName = LS('atlas_modelName') || '';
+  const key = LS('atlas_key') || '';
+  const inBase = document.getElementById('apiBaseUrl'); if(inBase) inBase.value = baseUrl;
+  const inMod = document.getElementById('apiModel'); if(inMod) inMod.value = modelName;
+  const inKey = document.getElementById('apiInp'); if(inKey) inKey.value = key;
+  const ar=document.getElementById('autoRead'); if(ar)ar.checked=s.autoRead||false;
+  const vr=document.getElementById('vRate'); if(vr)vr.value=s.voiceRate||1;
+  applyTheme(s.theme||'clean',true); updateKeyUI();
+}
+
+function saveSettings(){
+  const baseUrl = document.getElementById('apiBaseUrl').value.trim();
+  const modelName = document.getElementById('apiModel').value.trim();
+  const key = document.getElementById('apiInp').value.trim();
+  LS('atlas_baseUrl', baseUrl);
+  LS('atlas_modelName', modelName);
+  LS('atlas_key', key);
+  const s={...S(),autoRead:document.getElementById('autoRead')?.checked||false,voiceRate:document.getElementById('vRate')?.value||1,theme:document.querySelector('.tswatch.active')?.dataset.t||'clean'};
+  LS('atlas_s',s); 
+  updateKeyUI(); 
+  closeM('settingsM'); 
+  toast('Settings saved ✓','ok');
+}
+
+function updateKeyUI(){
+  const baseUrl = LS('atlas_baseUrl');
+  const dot=document.getElementById('ksDot');const lbl=document.getElementById('ksLabel'); if(!dot)return;
+  if(baseUrl){dot.style.background='var(--green-500)';lbl.style.color='var(--green-600)';lbl.textContent='API Configured ✓';}
+  else{dot.style.background='var(--red-500)';lbl.style.color='var(--red-500)';lbl.textContent='API not configured';}
+}
+function toggleEye(){const i=document.getElementById('apiInp');i.type=i.type==='password'?'text':'password';}
+
+// ── MODALS ──
+function openM(id){if(id==='settingsM')loadSettings();document.getElementById(id).classList.add('open');}
+function closeM(id){document.getElementById(id).classList.remove('open');}
+document.addEventListener('click',e=>{if(e.target.classList.contains('overlay'))e.target.classList.remove('open');});
+
+// ── SIDEBAR MOBILE ──
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('mobOverlay').classList.toggle('open');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('mobOverlay').classList.remove('open');}
+
+// ── PWA ──
+function regSW(){
+  if(!('serviceWorker'in navigator))return;
+  const code=`const C='atlas-v2.1';self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(['/']))));self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>caches.match('/')))))`;
+  const b=new Blob([code],{type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(b)).catch(()=>{});
+}
+let dp;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;setTimeout(()=>toast('Install Atlas RN as an app 📲','info'),4000);});
+if(/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())&&!window.matchMedia('(display-mode: standalone)').matches)
+  setTimeout(()=>toast('Tap Share → Add to Home Screen to install 📱','info'),5000);
+
+// ── INIT ──
+window.addEventListener('load',()=>{const u=SS('atlas_sess');if(u)boot(u);});
+</script>
+</body>
+</html>
